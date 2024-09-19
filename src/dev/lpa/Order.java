@@ -1,4 +1,4 @@
 package dev.lpa;
 
-public record Order(int id, String shoeType, int quantity) {
+public record Order(long id, String shoeType, int quantity) {
 }

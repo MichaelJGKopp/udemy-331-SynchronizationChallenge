@@ -5,11 +5,11 @@ import java.util.List;
 
 public class ShoeWarehouse {
 
-  public static List<String> products = new ArrayList<>(List.of(
+  public final static String[] PRODUCT_LIST = {
     "Shoe1",
     "Shoe2",
     "Shoe3"
-  ));
+  };
   private List<Order> orders;
 
   public ShoeWarehouse() {
@@ -18,7 +18,7 @@ public class ShoeWarehouse {
 
   public synchronized void receiveOrder(Order order) {
 
-    while (!orders.isEmpty()) {
+    while (orders.size() >= 8) {
       try {
         wait();
       } catch (InterruptedException e) {
@@ -27,7 +27,7 @@ public class ShoeWarehouse {
     }
     orders.add(order);
     System.out.println("Add" + order);
-    notify();
+    notifyAll();
   }
 
   public synchronized Order fulfillOrder() {
