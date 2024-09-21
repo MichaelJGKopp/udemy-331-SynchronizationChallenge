@@ -5,15 +5,10 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 public class ShoeWarehouse {
 
   private final ExecutorService consumer;
-  private Lock lock = new ReentrantLock();
-  private Condition condition = lock.newCondition();
 
   public final static String[] PRODUCT_LIST = {
     "Shoe1",
@@ -27,49 +22,46 @@ public class ShoeWarehouse {
     this.consumer = Executors.newFixedThreadPool(threadNumber);
   }
 
-  public void receiveOrder(Order order) {
+  public synchronized void receiveOrder(Order order) {
 
-    lock.lock();
-    try {
-      while (orders.size() >= 8) {
-          condition.await(3, TimeUnit.SECONDS);
+      while (orders.size() >= 20) {
+        try {
+          wait();
+        } catch (InterruptedException e) {
+          throw new RuntimeException(e);
+        }
       }
         orders.add(order);
-        System.out.println(Thread.currentThread().getName() + " adds" + order);
-        condition.signalAll();
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
-    } finally {
-      lock.unlock();
-    }
+        System.out.println("\u001B[33m" + Thread.currentThread().getName() + " adds" + order);
+        notifyAll();
   }
 
   public void consumerFulfillOrder() {
       consumer.submit(this::fulfillOrder);
   }
 
-  public Order fulfillOrder() {
+  public synchronized Order fulfillOrder() {
 
-    Order order = null;
-    try {
-      lock.lock();
-      while (orders.isEmpty()) {
-        condition.await(3, TimeUnit.SECONDS);
+    while (orders.isEmpty()) {
+      try {
+        wait();
+      } catch (InterruptedException e) {
+        throw new RuntimeException(e);
       }
-
-      order = orders.removeFirst();
-      System.out.println("\u001B[34m" + Thread.currentThread().getName() + " fulfills " + order);
-      condition.signalAll();
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
-    } finally {
-      lock.unlock();
     }
+    Order order = orders.removeFirst();
+    System.out.println("\u001B[34m" + Thread.currentThread().getName() + " fulfills " + order);
+    notifyAll();
     return order;
   }
 
   public void consumerShutdown() {
     consumer.shutdown();
+    try {
+      consumer.awaitTermination(3, TimeUnit.SECONDS);
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
+    }
   }
 
 }

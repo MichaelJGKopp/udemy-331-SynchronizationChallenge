@@ -3,6 +3,7 @@ package dev.lpa;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class Main {
 
@@ -11,21 +12,47 @@ public class Main {
     Random random = new Random();
     ShoeWarehouse shoeWarehouse = new ShoeWarehouse(2);
 
-    Runnable producerRunnable = () -> {
-      for (int i = 0; i < 15; i++) {
-        shoeWarehouse.receiveOrder(generateOrder(random));
+//    Callable<Order> orderingTask = () -> {
+//      Order order = generateOrder(random);
+//      try {
+//        Thread.sleep(random.nextInt(500, 1000));
+//        shoeWarehouse.receiveOrder(order);
+//      } catch (InterruptedException e) {
+//        throw new RuntimeException(e);
+//      }
+//      return order;
+//    };
+
+    ExecutorService orderingService = Executors.newCachedThreadPool();
+
+//    List<Callable<Order>> tasks = Collections.nCopies(15, orderingTask);
+//    try {
+//      List<Future<Order>> futures = orderingService.invokeAll(tasks);
+//    } catch (InterruptedException e) {
+//      throw new RuntimeException(e);
+//    }
+
+    try {
+//      Thread.sleep(random.nextInt(500), 2000);
+      for (int j = 0; j < 15; j++) {
+        Thread.sleep(random.nextInt(500), 2000);
+        orderingService.submit(() -> shoeWarehouse.receiveOrder(generateOrder(random)));
       }
-    };
-    ExecutorService producer = Executors.newSingleThreadExecutor(
-      r -> new Thread(r, "\u001B[33mProducer"));
-    producer.execute(producerRunnable);
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
+    }
 
     for (int i = 0; i < 15; i++) {
       shoeWarehouse.consumerFulfillOrder();
     }
 
-    producer.shutdown();
+    orderingService.shutdown();
     shoeWarehouse.consumerShutdown();
+    try {
+      orderingService.awaitTermination(6, TimeUnit.SECONDS);
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private static Order generateOrder(Random random) {
