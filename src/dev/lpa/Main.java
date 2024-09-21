@@ -13,10 +13,7 @@ public class Main {
 
     Runnable producerRunnable = () -> {
       for (int i = 0; i < 15; i++) {
-        shoeWarehouse.receiveOrder(new Order(
-          random.nextLong(1000000, 9999999),
-          ShoeWarehouse.PRODUCT_LIST[random.nextInt(0,3)],
-          random.nextInt(0, 10)));
+        shoeWarehouse.receiveOrder(generateOrder(random));
       }
     };
     ExecutorService producer = Executors.newSingleThreadExecutor(
@@ -29,5 +26,12 @@ public class Main {
 
     producer.shutdown();
     shoeWarehouse.consumerShutdown();
+  }
+
+  private static Order generateOrder(Random random) {
+    return new Order(
+      random.nextLong(1000000, 9999999),
+      ShoeWarehouse.PRODUCT_LIST[random.nextInt(0, 3)],
+      random.nextInt(0, 10));
   }
 }
