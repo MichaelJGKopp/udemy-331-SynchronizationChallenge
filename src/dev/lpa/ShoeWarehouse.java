@@ -2,8 +2,12 @@ package dev.lpa;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class ShoeWarehouse {
+
+  private final ExecutorService consumer;
 
   public final static String[] PRODUCT_LIST = {
     "Shoe1",
@@ -12,8 +16,9 @@ public class ShoeWarehouse {
   };
   private List<Order> orders;
 
-  public ShoeWarehouse() {
+  public ShoeWarehouse(int threadNumber) {
     this.orders = new ArrayList<>();
+    this.consumer = Executors.newFixedThreadPool(threadNumber);
   }
 
   public synchronized void receiveOrder(Order order) {
@@ -26,8 +31,12 @@ public class ShoeWarehouse {
       }
     }
     orders.add(order);
-    System.out.println("Add" + order);
+    System.out.println(Thread.currentThread().getName() + " adds" + order);
     notifyAll();
+  }
+
+  public synchronized void consumerFulfillOrder() {
+      consumer.submit(this::fulfillOrder);
   }
 
   public synchronized Order fulfillOrder() {
@@ -40,9 +49,13 @@ public class ShoeWarehouse {
       }
     }
     Order order = orders.removeFirst();
-    System.out.println(Thread.currentThread().getName() + " Fulfill " + order);
+    System.out.println("\u001B[34m" + Thread.currentThread().getName() + " fulfills " + order);
     notifyAll();
     return order;
+  }
+
+  public void consumerShutdown() {
+    consumer.shutdown();
   }
 
 }
