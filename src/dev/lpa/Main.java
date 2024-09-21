@@ -1,6 +1,9 @@
 package dev.lpa;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Random;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -11,14 +14,19 @@ public class Main {
     Random random = new Random();
     ShoeWarehouse shoeWarehouse = new ShoeWarehouse(2);
 
-    Runnable producerRunnable = () -> {
-      for (int i = 0; i < 15; i++) {
-        shoeWarehouse.receiveOrder(generateOrder(random));
-      }
+    Callable<Order> task = () -> {
+      Order order = generateOrder(random);
+        shoeWarehouse.receiveOrder(order);
+        return order;
     };
-    ExecutorService producer = Executors.newSingleThreadExecutor(
-      r -> new Thread(r, "\u001B[33mProducer"));
-    producer.execute(producerRunnable);
+
+    List<Callable<Order>> tasks = Collections.nCopies(15, task);
+    ExecutorService producer = Executors.newCachedThreadPool(r -> new Thread(r, "\u001B[33mProducer"));
+    try {
+      producer.invokeAll(tasks);
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
+    }
 
     for (int i = 0; i < 15; i++) {
       shoeWarehouse.consumerFulfillOrder();

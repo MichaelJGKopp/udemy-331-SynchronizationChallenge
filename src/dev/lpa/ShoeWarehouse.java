@@ -31,8 +31,8 @@ public class ShoeWarehouse {
 
     lock.lock();
     try {
-      while (orders.size() >= 8) {
-          condition.await(3, TimeUnit.SECONDS);
+      while (orders.size() >= 20) {
+          condition.await(30, TimeUnit.SECONDS);
       }
         orders.add(order);
         System.out.println(Thread.currentThread().getName() + " adds" + order);
@@ -54,7 +54,7 @@ public class ShoeWarehouse {
     try {
       lock.lock();
       while (orders.isEmpty()) {
-        condition.await(3, TimeUnit.SECONDS);
+        condition.await(30, TimeUnit.SECONDS);
       }
 
       order = orders.removeFirst();
